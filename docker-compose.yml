@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  real-time-detection:
+    build: .
+    container_name: real-time-detection
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    devices:
+      - /dev/video0:/dev/video0  # Webcam access
+    ports:
+      - "8000:8000"
+    command: python main.py --input 0 --save-output
+    restart: unless-stopped
+
+  # Optional: GPU support (requires nvidia-docker)
+  real-time-detection-gpu:
+    build: .
+    container_name: real-time-detection-gpu
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+    devices:
+      - /dev/video0:/dev/video0
+    ports:
+      - "8000:8000"
+    command: python main.py --input 0 --device cuda --save-output
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Development service
+  real-time-detection-dev:
+    build: .
+    container_name: real-time-detection-dev
+    volumes:
+      - .:/app
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    devices:
+      - /dev/video0:/dev/video0
+    ports:
+      - "8000:8000"
+    command: python main.py --input 0 --verbose
+    restart: "no"
